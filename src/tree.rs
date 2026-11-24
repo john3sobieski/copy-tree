@@ -37,7 +37,8 @@ pub fn build_tree(root: &Path, config: &Config) -> Result<String, String> {
         ancestors.push(last);
     }
     if truncated {
-        out.push_str("... (truncated)\n");
+        // Show the active limit, so a stale config is easy to spot.
+        out.push_str(&format!("... (truncated at {} entries)\n", config.max_entries));
     }
     Ok(out)
 }
