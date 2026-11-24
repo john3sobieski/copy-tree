@@ -1,6 +1,9 @@
+#![windows_subsystem = "windows"]
+
 mod config;
 mod install;
 mod tree;
+mod ui;
 
 use arboard::Clipboard;
 use std::env;
@@ -8,54 +11,44 @@ use std::path::{self, Path, PathBuf};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    // `--print` writes the result to stdout instead of the clipboard (debug).
-    let mut print_only = false;
-    let mut target: Option<PathBuf> = None;
-    for arg in env::args_os().skip(1) {
-        if arg == "--install" {
-            return report(install::install(), "Context menu entries installed");
-        } else if arg == "--uninstall" {
-            return report(install::uninstall(), "Context menu entries removed");
-        } else if arg == "--print" {
-            print_only = true;
-        } else if target.is_none() {
-            target = Some(fix_drive_root(PathBuf::from(arg)));
-        }
-    }
-
-    let Some(target) = target else {
-        eprintln!("Usage: copytree [--print] <folder or file>\n       copytree --install | --uninstall");
-        return ExitCode::from(2);
+    // No argument: the exe was started by hand, so set up (or remove) the Explorer menu entry.
+    // With a path: Explorer started it from the menu, so copy the tree or the file path.
+    let result = match env::args_os().nth(1) {
+        None => setup(),
+        Some(arg) => copy(&fix_drive_root(PathBuf::from(arg))),
     };
-
-    let text = match render(&target) {
-        Ok(text) => text,
-        Err(message) => {
-            eprintln!("{message}");
-            return ExitCode::from(1);
-        }
-    };
-
-    if print_only {
-        print!("{text}");
-        return ExitCode::SUCCESS;
-    }
-
-    let copied = copy_to_clipboard(&text);
-    report(copied, &format!("Copied to clipboard ({} lines)", text.lines().count()))
-}
-
-fn report(result: Result<(), String>, success: &str) -> ExitCode {
     match result {
-        Ok(()) => {
-            println!("{success}");
-            ExitCode::SUCCESS
-        }
+        Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
-            eprintln!("{message}");
+            ui::error(&message);
             ExitCode::from(1)
         }
     }
+}
+
+fn setup() -> Result<(), String> {
+    if install::is_installed() {
+        if ui::ask("CopyTree is already in the Explorer menu.\n\nRemove it?") {
+            install::uninstall()?;
+            ui::info("CopyTree was removed from the Explorer menu.");
+        }
+    } else {
+        install::install()?;
+        ui::info(
+            "CopyTree was added to the Explorer menu.\n\n\
+             Right-click a folder or a file and choose CopyTree.\n\n\
+             If you move the exe, run it again to update the menu.",
+        );
+    }
+    Ok(())
+}
+
+fn copy(path: &Path) -> Result<(), String> {
+    let text = render(path)?;
+    let mut clipboard = Clipboard::new().map_err(|e| format!("Cannot open the clipboard: {e}"))?;
+    clipboard
+        .set_text(text)
+        .map_err(|e| format!("Cannot write to the clipboard: {e}"))
 }
 
 /// Explorer passes a drive root as `D:"` (the `\"` in `"D:\"` is parsed as a quote); restore `D:\`.
@@ -78,11 +71,4 @@ fn render(path: &Path) -> Result<String, String> {
     } else {
         Err(format!("Path not found: {}", path.display()))
     }
-}
-
-fn copy_to_clipboard(text: &str) -> Result<(), String> {
-    let mut clipboard = Clipboard::new().map_err(|e| format!("Cannot open the clipboard: {e}"))?;
-    clipboard
-        .set_text(text.to_owned())
-        .map_err(|e| format!("Cannot write to the clipboard: {e}"))
 }
