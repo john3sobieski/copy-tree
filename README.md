@@ -69,6 +69,6 @@ The exe is `target\release\copytree.exe`. GitHub Actions also builds it on every
 ## Credits and license
 
 - Author: john3sobieski
-- Idea: solarch
+- Idea: so1arch
 
 [PolyForm Noncommercial License 1.0.0](LICENSE): free for noncommercial use.
