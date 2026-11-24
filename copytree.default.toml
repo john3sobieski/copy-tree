@@ -2,10 +2,10 @@
 # Delete this file to restore the defaults. A missing key uses its default value.
 
 # Maximum folder depth (the clicked folder itself is level 0).
-max_depth = 6
+max_depth = 100
 
 # Maximum number of lines in the output; the rest is cut with "... (truncated)".
-max_entries = 2000
+max_entries = 1000000
 
 # Also respect the .gitignore files found inside the clicked folder.
 use_gitignore = true
