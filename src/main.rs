@@ -1,4 +1,5 @@
 mod config;
+mod install;
 mod tree;
 
 use arboard::Clipboard;
@@ -11,15 +12,19 @@ fn main() -> ExitCode {
     let mut print_only = false;
     let mut target: Option<PathBuf> = None;
     for arg in env::args_os().skip(1) {
-        if arg == "--print" {
+        if arg == "--install" {
+            return report(install::install(), "Context menu entries installed");
+        } else if arg == "--uninstall" {
+            return report(install::uninstall(), "Context menu entries removed");
+        } else if arg == "--print" {
             print_only = true;
         } else if target.is_none() {
-            target = Some(PathBuf::from(arg));
+            target = Some(fix_drive_root(PathBuf::from(arg)));
         }
     }
 
     let Some(target) = target else {
-        eprintln!("Usage: copytree [--print] <folder or file>");
+        eprintln!("Usage: copytree [--print] <folder or file>\n       copytree --install | --uninstall");
         return ExitCode::from(2);
     };
 
@@ -36,15 +41,28 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    match copy_to_clipboard(&text) {
+    let copied = copy_to_clipboard(&text);
+    report(copied, &format!("Copied to clipboard ({} lines)", text.lines().count()))
+}
+
+fn report(result: Result<(), String>, success: &str) -> ExitCode {
+    match result {
         Ok(()) => {
-            println!("Copied to clipboard ({} lines)", text.lines().count());
+            println!("{success}");
             ExitCode::SUCCESS
         }
         Err(message) => {
             eprintln!("{message}");
             ExitCode::from(1)
         }
+    }
+}
+
+/// Explorer passes a drive root as `D:"` (the `\"` in `"D:\"` is parsed as a quote); restore `D:\`.
+fn fix_drive_root(path: PathBuf) -> PathBuf {
+    match path.to_string_lossy().strip_suffix('"') {
+        Some(stripped) => PathBuf::from(format!("{stripped}\\")),
+        None => path,
     }
 }
 

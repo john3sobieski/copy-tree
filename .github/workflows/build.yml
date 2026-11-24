@@ -30,6 +30,14 @@ jobs:
           path: target/release/copytree.exe
           if-no-files-found: error
 
+      # The lock file is generated during the build; download it and commit it to the repo.
+      - name: Upload Cargo.lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cargo.lock
+          path: Cargo.lock
+          if-no-files-found: error
+
       # A tag like v0.1.0 also publishes the exe as a GitHub release.
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
