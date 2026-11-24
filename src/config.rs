@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 const DEFAULT_TOML: &str = include_str!("../copytree.default.toml");
-const FILE_NAME: &str = "copytree.toml";
+pub const FILE_NAME: &str = "copytree.toml";
 
 pub struct Config {
     pub max_depth: usize,

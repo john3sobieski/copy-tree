@@ -27,18 +27,28 @@ fn main() -> ExitCode {
 }
 
 fn setup() -> Result<(), String> {
-    if install::is_installed() {
-        if ui::ask("CopyTree is already in the Explorer menu.\n\nRemove it?") {
-            install::uninstall()?;
-            ui::info("CopyTree was removed from the Explorer menu.");
-        }
-    } else {
-        install::install()?;
-        ui::info(
+    if !install::is_installed() {
+        let dir = install::install()?;
+        ui::info(&format!(
             "CopyTree was added to the Explorer menu.\n\n\
-             Right-click a folder or a file and choose CopyTree.\n\n\
-             If you move the exe, run it again to update the menu.",
-        );
+             Right-click a folder or a file and choose the copy entry.\n\n\
+             The program was copied to:\n{}\n\n\
+             You can move or delete this exe, the menu keeps working.",
+            dir.display()
+        ));
+        return Ok(());
+    }
+    // Already installed: offer an update from this exe (unless it is the installed copy), then removal.
+    if !install::running_from_install_dir()
+        && ui::ask("CopyTree is already installed.\n\nUpdate it with this exe?")
+    {
+        install::install()?;
+        ui::info("CopyTree was updated.");
+        return Ok(());
+    }
+    if ui::ask("Remove CopyTree from the Explorer menu?") {
+        install::uninstall()?;
+        ui::info("CopyTree was removed from the Explorer menu.");
     }
     Ok(())
 }
