@@ -1,5 +1,5 @@
 Required Notice: Copyright (c) 2026 john3sobieski
-Required Notice: Idea by MF
+Required Notice: Idea by so1arch
 
 # PolyForm Noncommercial License 1.0.0
 
