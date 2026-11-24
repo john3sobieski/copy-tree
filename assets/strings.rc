@@ -1,0 +1,67 @@
+// All texts shown to the user (menu entries, dialogs). Windows picks the block that matches
+// the display language; en-US is the fallback. IDs must match src/strings.rs.
+// To add a language: copy a block, change the LANGUAGE line (language id, sublanguage id), translate.
+// In texts: \n is a line break, {0} and {1} are filled in by the program, "" is a quote, \\ is a backslash.
+#pragma code_page(65001)
+
+LANGUAGE 0x09, 0x01
+STRINGTABLE
+BEGIN
+    101, "Copy file path"
+    102, "Copy folder tree"
+
+    110, "CopyTree was added to the Explorer menu.\n\nRight-click a folder or a file and choose the copy entry.\n\nThe program was copied to:\n{0}\n\nYou can move or delete this exe, the menu keeps working."
+    111, "CopyTree is already installed.\n\nUpdate it with this exe?"
+    112, "CopyTree was updated."
+    113, "Remove CopyTree from the Explorer menu?"
+    114, "CopyTree was removed from the Explorer menu."
+
+    120, "Cannot open the clipboard: {0}"
+    121, "Cannot write to the clipboard: {0}"
+    122, "Path not found: {0}"
+    123, "Cannot resolve {0}: {1}"
+
+    130, "Built-in default config is broken: {0}"
+    131, "Cannot read {0}: {1}"
+    132, "Invalid {0}:\n{1}"
+    133, "Bad ignore pattern ""{0}"": {1}"
+    134, "Bad ignore list: {0}"
+
+    140, "Cannot find the exe path: {0}"
+    141, "Cannot find the LOCALAPPDATA folder"
+    142, "Cannot create {0}: {1}"
+    143, "Cannot copy the exe to {0}: {1}"
+    144, "Registry error at HKCU\\{0}: {1}"
+    145, "Context menu integration works on Windows only"
+END
+
+LANGUAGE 0x19, 0x01
+STRINGTABLE
+BEGIN
+    101, "Скопировать путь к файлу"
+    102, "Скопировать дерево папки"
+
+    110, "CopyTree добавлен в меню Проводника.\n\nНажмите правой кнопкой мыши на папку или файл и выберите пункт копирования.\n\nПрограмма скопирована в:\n{0}\n\nЭтот exe можно переместить или удалить, меню продолжит работать."
+    111, "CopyTree уже установлен.\n\nОбновить его этим exe?"
+    112, "CopyTree обновлён."
+    113, "Удалить CopyTree из меню Проводника?"
+    114, "CopyTree удалён из меню Проводника."
+
+    120, "Не удаётся открыть буфер обмена: {0}"
+    121, "Не удаётся записать в буфер обмена: {0}"
+    122, "Путь не найден: {0}"
+    123, "Не удаётся определить полный путь {0}: {1}"
+
+    130, "Встроенный конфиг по умолчанию повреждён: {0}"
+    131, "Не удаётся прочитать {0}: {1}"
+    132, "Ошибка в {0}:\n{1}"
+    133, "Некорректный шаблон игнорирования «{0}»: {1}"
+    134, "Некорректный список игнорирования: {0}"
+
+    140, "Не удаётся определить путь к exe: {0}"
+    141, "Не удаётся найти папку LOCALAPPDATA"
+    142, "Не удаётся создать {0}: {1}"
+    143, "Не удаётся скопировать exe в {0}: {1}"
+    144, "Ошибка реестра в HKCU\\{0}: {1}"
+    145, "Интеграция с контекстным меню работает только в Windows"
+END

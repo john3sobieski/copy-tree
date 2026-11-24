@@ -2,6 +2,7 @@
 
 mod config;
 mod install;
+mod strings;
 mod tree;
 mod ui;
 
@@ -29,36 +30,31 @@ fn main() -> ExitCode {
 fn setup() -> Result<(), String> {
     if !install::is_installed() {
         let dir = install::install()?;
-        ui::info(&format!(
-            "CopyTree was added to the Explorer menu.\n\n\
-             Right-click a folder or a file and choose the copy entry.\n\n\
-             The program was copied to:\n{}\n\n\
-             You can move or delete this exe, the menu keeps working.",
-            dir.display()
-        ));
+        ui::info(&strings::get(strings::SETUP_DONE, &[&dir.display()]));
         return Ok(());
     }
     // Already installed: offer an update from this exe (unless it is the installed copy), then removal.
     if !install::running_from_install_dir()
-        && ui::ask("CopyTree is already installed.\n\nUpdate it with this exe?")
+        && ui::ask(&strings::get(strings::SETUP_ASK_UPDATE, &[]))
     {
         install::install()?;
-        ui::info("CopyTree was updated.");
+        ui::info(&strings::get(strings::SETUP_UPDATED, &[]));
         return Ok(());
     }
-    if ui::ask("Remove CopyTree from the Explorer menu?") {
+    if ui::ask(&strings::get(strings::SETUP_ASK_REMOVE, &[])) {
         install::uninstall()?;
-        ui::info("CopyTree was removed from the Explorer menu.");
+        ui::info(&strings::get(strings::SETUP_REMOVED, &[]));
     }
     Ok(())
 }
 
 fn copy(path: &Path) -> Result<(), String> {
     let text = render(path)?;
-    let mut clipboard = Clipboard::new().map_err(|e| format!("Cannot open the clipboard: {e}"))?;
+    let mut clipboard = Clipboard::new()
+        .map_err(|e| strings::get(strings::ERR_CLIPBOARD_OPEN, &[&e]))?;
     clipboard
         .set_text(text)
-        .map_err(|e| format!("Cannot write to the clipboard: {e}"))
+        .map_err(|e| strings::get(strings::ERR_CLIPBOARD_WRITE, &[&e]))
 }
 
 /// Explorer passes a drive root as `D:"` (the `\"` in `"D:\"` is parsed as a quote); restore `D:\`.
@@ -76,9 +72,9 @@ fn render(path: &Path) -> Result<String, String> {
         tree::build_tree(path, &config)
     } else if path.is_file() {
         let absolute = path::absolute(path)
-            .map_err(|e| format!("Cannot resolve {}: {e}", path.display()))?;
+            .map_err(|e| strings::get(strings::ERR_RESOLVE, &[&path.display(), &e]))?;
         Ok(absolute.to_string_lossy().into_owned())
     } else {
-        Err(format!("Path not found: {}", path.display()))
+        Err(strings::get(strings::ERR_PATH_NOT_FOUND, &[&path.display()]))
     }
 }

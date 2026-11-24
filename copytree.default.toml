@@ -14,6 +14,7 @@ use_gitignore = true
 show_sizes = true
 
 # File and folder names (or masks like "*.pyc") to skip at any depth.
+# A skipped folder is still listed as "name/ [skipped]" without its content; skipped files are hidden.
 ignore = [
     # Version control
     ".git", ".svn", ".hg",

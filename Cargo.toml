@@ -1,6 +1,6 @@
 [package]
 name = "copytree"
-version = "2.1.1"
+version = "2.2.0"
 edition = "2021"
 authors = ["john3sobieski"]
 description = "Copies a folder tree to the clipboard from the Windows Explorer context menu"
@@ -14,7 +14,7 @@ toml = "0.8"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
-windows-sys = { version = "0.59", features = ["Win32_Globalization", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_UI_WindowsAndMessaging"] }
 
 [build-dependencies]
 winresource = "0.1"

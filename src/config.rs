@@ -1,5 +1,6 @@
 //! Settings from `copytree.toml` next to the exe; a commented-out template is created if it is missing.
 
+use crate::strings;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::{env, fs};
@@ -38,7 +39,7 @@ struct UserConfig {
 
 pub fn load() -> Result<Config, String> {
     let defaults: DefaultConfig = toml::from_str(DEFAULT_TOML)
-        .map_err(|e| format!("Built-in default config is broken: {e}"))?;
+        .map_err(|e| strings::get(strings::ERR_DEFAULT_CONFIG, &[&e]))?;
     let mut config = Config {
         max_depth: defaults.max_depth,
         max_entries: defaults.max_entries,
@@ -55,9 +56,9 @@ pub fn load() -> Result<Config, String> {
     }
 
     let text = fs::read_to_string(&path)
-        .map_err(|e| format!("Cannot read {}: {e}", path.display()))?;
+        .map_err(|e| strings::get(strings::ERR_CONFIG_READ, &[&path.display(), &e]))?;
     let user: UserConfig = toml::from_str(text.trim_start_matches('\u{feff}'))
-        .map_err(|e| format!("Invalid {}:\n{e}", path.display()))?;
+        .map_err(|e| strings::get(strings::ERR_CONFIG_INVALID, &[&path.display(), &e]))?;
 
     if let Some(v) = user.max_depth {
         config.max_depth = v;
@@ -95,6 +96,6 @@ fn template() -> String {
 }
 
 fn config_path() -> Result<PathBuf, String> {
-    let exe = env::current_exe().map_err(|e| format!("Cannot find the exe path: {e}"))?;
+    let exe = env::current_exe().map_err(|e| strings::get(strings::ERR_EXE_PATH, &[&e]))?;
     Ok(exe.with_file_name(FILE_NAME))
 }

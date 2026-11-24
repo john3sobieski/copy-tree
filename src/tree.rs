@@ -1,15 +1,18 @@
 //! Builds a `tree`-style text view of a folder.
 
 use crate::config::Config;
-use ignore::overrides::OverrideBuilder;
-use ignore::WalkBuilder;
-use std::cmp::Ordering;
-use std::path::Path;
+use crate::strings;
+use ignore::gitignore::{Gitignore, GitignoreBuilder};
+use ignore::overrides::{Override, OverrideBuilder};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 struct Entry {
     depth: usize,
     name: String,
     is_dir: bool,
+    /// Folder excluded by the ignore list or a .gitignore: listed, but its content is not.
+    skipped: bool,
     size: Option<u64>,
 }
 
@@ -33,6 +36,9 @@ pub fn build_tree(root: &Path, config: &Config) -> Result<String, String> {
         out.push_str(&entry.name);
         if entry.is_dir {
             out.push('/');
+            if entry.skipped {
+                out.push_str(" [skipped]");
+            }
         }
         if let Some(size) = entry.size {
             out.push_str(&format!(" ({})", format_size(size)));
@@ -62,41 +68,130 @@ fn collect(root: &Path, config: &Config) -> Result<Vec<Entry>, String> {
     for pattern in config.ignore.iter().map(|p| p.trim()).filter(|p| !p.is_empty()) {
         overrides
             .add(&format!("!{pattern}"))
-            .map_err(|e| format!("Bad ignore pattern \"{pattern}\": {e}"))?;
+            .map_err(|e| strings::get(strings::ERR_IGNORE_PATTERN, &[&pattern, &e]))?;
     }
-    let overrides = overrides.build().map_err(|e| format!("Bad ignore list: {e}"))?;
+    let ignore_list = overrides
+        .build()
+        .map_err(|e| strings::get(strings::ERR_IGNORE_LIST, &[&e]))?;
 
-    let walker = WalkBuilder::new(root)
-        .standard_filters(false)
-        .git_ignore(config.use_gitignore)
-        .git_exclude(config.use_gitignore)
-        .require_git(false)
-        .overrides(overrides)
-        .max_depth(Some(config.max_depth))
-        .sort_by_file_path(compare)
-        .build();
+    let mut walk = Walk {
+        config,
+        ignore_list,
+        entries: Vec::new(),
+        // One entry more than allowed, to know whether the output is cut.
+        limit: config.max_entries.saturating_add(1),
+    };
+    walk.visit(root, 0, &mut Vec::new());
+    Ok(walk.entries)
+}
 
-    let entries = walker
-        .filter_map(Result::ok)
-        .filter(|e| e.depth() > 0)
-        .take(config.max_entries.saturating_add(1))
-        .map(|e| {
-            let is_dir = e.file_type().is_some_and(|t| t.is_dir());
-            // Sizes cost one extra stat per file, so they are read only when enabled.
-            let size = if config.show_sizes && !is_dir {
-                e.metadata().ok().map(|m| m.len())
-            } else {
-                None
-            };
-            Entry {
-                depth: e.depth(),
-                name: e.file_name().to_string_lossy().into_owned(),
-                is_dir,
-                size,
+struct Walk<'a> {
+    config: &'a Config,
+    ignore_list: Override,
+    entries: Vec<Entry>,
+    limit: usize,
+}
+
+struct Child {
+    name: String,
+    sort_key: String,
+    path: PathBuf,
+    is_dir: bool,
+    size: Option<u64>,
+}
+
+impl Walk<'_> {
+    /// Adds the children of `dir` (at `depth`) and descends into the folders that are not skipped.
+    /// `git` holds the .gitignore rules of the folders above, the closest one last.
+    fn visit(&mut self, dir: &Path, depth: usize, git: &mut Vec<Gitignore>) {
+        if depth >= self.config.max_depth {
+            return;
+        }
+        // Unreadable folders (no access) are left empty instead of failing the whole run.
+        let Ok(read_dir) = fs::read_dir(dir) else {
+            return;
+        };
+        let show_sizes = self.config.show_sizes;
+        let mut children: Vec<Child> = read_dir
+            .filter_map(Result::ok)
+            .map(|e| {
+                // Symlinks are not followed: they count as files, so there are no loops.
+                let is_dir = e.file_type().is_ok_and(|t| t.is_dir());
+                let name = e.file_name().to_string_lossy().into_owned();
+                // Sizes cost one extra stat per file, so they are read only when enabled.
+                let size = if show_sizes && !is_dir {
+                    e.metadata().ok().map(|m| m.len())
+                } else {
+                    None
+                };
+                Child { sort_key: name.to_lowercase(), name, path: e.path(), is_dir, size }
+            })
+            .collect();
+        // Folders first, then case-insensitive by name.
+        children.sort_by(|a, b| {
+            b.is_dir
+                .cmp(&a.is_dir)
+                .then_with(|| a.sort_key.cmp(&b.sort_key))
+                .then_with(|| a.name.cmp(&b.name))
+        });
+
+        let mut pushed = false;
+        if self.config.use_gitignore {
+            if let Some(gitignore) = load_gitignore(dir) {
+                git.push(gitignore);
+                pushed = true;
             }
-        })
-        .collect();
-    Ok(entries)
+        }
+        for child in children {
+            if self.entries.len() >= self.limit {
+                break;
+            }
+            let skipped = self.is_skipped(&child.path, child.is_dir, git);
+            // Skipped files stay hidden, skipped folders are marked.
+            if skipped && !child.is_dir {
+                continue;
+            }
+            self.entries.push(Entry {
+                depth: depth + 1,
+                name: child.name,
+                is_dir: child.is_dir,
+                skipped,
+                size: child.size,
+            });
+            if child.is_dir && !skipped {
+                self.visit(&child.path, depth + 1, git);
+            }
+        }
+        if pushed {
+            git.pop();
+        }
+    }
+
+    /// True if the ignore list or a .gitignore excludes the path (the closest .gitignore wins).
+    fn is_skipped(&self, path: &Path, is_dir: bool, git: &[Gitignore]) -> bool {
+        if self.ignore_list.matched(path, is_dir).is_ignore() {
+            return true;
+        }
+        for gitignore in git.iter().rev() {
+            let found = gitignore.matched(path, is_dir);
+            if found.is_ignore() {
+                return true;
+            }
+            if found.is_whitelist() {
+                return false;
+            }
+        }
+        false
+    }
+}
+
+/// Rules of one folder from `.git/info/exclude` and `.gitignore`, or None if it has none.
+fn load_gitignore(dir: &Path) -> Option<Gitignore> {
+    let mut builder = GitignoreBuilder::new(dir);
+    // A missing file is fine. Rules added later win, so `.gitignore` beats `info/exclude`.
+    let _ = builder.add(dir.join(".git").join("info").join("exclude"));
+    let _ = builder.add(dir.join(".gitignore"));
+    builder.build().ok().filter(|g| !g.is_empty())
 }
 
 /// Size with 1024-based units, e.g. "532 B" or "1.5 KB".
@@ -113,20 +208,6 @@ fn format_size(bytes: u64) -> String {
         unit += 1;
     }
     format!("{value:.1} {}", UNITS[unit])
-}
-
-/// Folders first, then case-insensitive by name.
-fn compare(a: &Path, b: &Path) -> Ordering {
-    b.is_dir()
-        .cmp(&a.is_dir())
-        .then_with(|| {
-            let (a, b) = (a.file_name(), b.file_name());
-            let lower = |n: Option<&std::ffi::OsStr>| {
-                n.map(|n| n.to_string_lossy().to_lowercase()).unwrap_or_default()
-            };
-            lower(a).cmp(&lower(b))
-        })
-        .then_with(|| a.cmp(b))
 }
 
 /// For every entry, whether it is the last child of its parent.

@@ -1,5 +1,6 @@
 //! Copies the exe to a fixed folder and adds/removes the Explorer menu entries under HKCU (no admin rights needed).
 
+use crate::strings;
 #[cfg(windows)]
 use std::path::{Path, PathBuf};
 
@@ -14,20 +15,11 @@ const TARGETS: [(&str, &str, bool); 3] = [
     (r"Software\Classes\*\shell\CopyTree", "%1", true),
 ];
 
-/// Menu text in Russian on a Russian Windows UI, English otherwise.
+/// Indirect string `@exe,-ID`: Explorer loads the menu text from the exe in the current display language.
 #[cfg(windows)]
-fn menu_text(is_file: bool) -> &'static str {
-    use windows_sys::Win32::Globalization::GetUserDefaultUILanguage;
-
-    // SAFETY: plain query without arguments.
-    let lang = unsafe { GetUserDefaultUILanguage() };
-    let russian = (lang & 0x3ff) == 0x19;
-    match (russian, is_file) {
-        (true, true) => "Скопировать путь к файлу",
-        (true, false) => "Скопировать дерево папки",
-        (false, true) => "Copy file path",
-        (false, false) => "Copy folder tree",
-    }
+fn menu_label(exe: &str, is_file: bool) -> String {
+    let id = if is_file { strings::MENU_FILE } else { strings::MENU_FOLDER };
+    format!("@{exe},-{id}")
 }
 
 #[cfg(windows)]
@@ -38,7 +30,8 @@ fn command_line(exe: &str, arg: &str) -> String {
 /// Fixed home of the installed exe, so the menu keeps working after the downloaded exe is moved.
 #[cfg(windows)]
 fn install_dir() -> Result<PathBuf, String> {
-    let base = std::env::var_os("LOCALAPPDATA").ok_or("Cannot find the LOCALAPPDATA folder")?;
+    let base = std::env::var_os("LOCALAPPDATA")
+        .ok_or_else(|| strings::get(strings::ERR_LOCALAPPDATA, &[]))?;
     Ok(PathBuf::from(base).join("CopyTree"))
 }
 
@@ -85,24 +78,26 @@ pub fn install() -> Result<PathBuf, String> {
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
-    let current = std::env::current_exe().map_err(|e| format!("Cannot find the exe path: {e}"))?;
+    let current = std::env::current_exe()
+        .map_err(|e| strings::get(strings::ERR_EXE_PATH, &[&e]))?;
     let dir = install_dir()?;
     let target = dir.join(EXE_NAME);
 
     if !same_path(&current, &target) {
         std::fs::create_dir_all(&dir)
-            .map_err(|e| format!("Cannot create {}: {e}", dir.display()))?;
+            .map_err(|e| strings::get(strings::ERR_CREATE_DIR, &[&dir.display(), &e]))?;
         std::fs::copy(&current, &target)
-            .map_err(|e| format!("Cannot copy the exe to {}: {e}", target.display()))?;
+            .map_err(|e| strings::get(strings::ERR_COPY_EXE, &[&target.display(), &e]))?;
     }
 
     let exe = target.display().to_string();
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     for (key, arg, is_file) in TARGETS {
-        let err = |e: std::io::Error| format!("Registry error at HKCU\\{key}: {e}");
+        let err = |e: std::io::Error| strings::get(strings::ERR_REGISTRY, &[&key, &e]);
         let (menu, _) = hkcu.create_subkey(key).map_err(err)?;
-        let text = menu_text(is_file);
-        menu.set_value("", &text).map_err(err)?;
+        menu.set_value("MUIVerb", &menu_label(&exe, is_file)).map_err(err)?;
+        // The text comes from MUIVerb now; drop the fixed text that older versions wrote here.
+        let _ = menu.delete_value("");
         menu.set_value("Icon", &format!("\"{exe}\",0")).map_err(err)?;
         let (command, _) = menu.create_subkey("command").map_err(err)?;
         command.set_value("", &command_line(&exe, arg)).map_err(err)?;
@@ -121,7 +116,7 @@ pub fn uninstall() -> Result<(), String> {
         match hkcu.delete_subkey_all(key) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => return Err(format!("Registry error at HKCU\\{key}: {e}")),
+            Err(e) => return Err(strings::get(strings::ERR_REGISTRY, &[&key, &e])),
         }
     }
     // A running exe cannot delete itself, so the folder stays if we run from it.
@@ -145,10 +140,10 @@ pub fn is_installed() -> bool {
 
 #[cfg(not(windows))]
 pub fn install() -> Result<std::path::PathBuf, String> {
-    Err("Context menu integration works on Windows only".to_string())
+    Err(strings::get(strings::ERR_WINDOWS_ONLY, &[]))
 }
 
 #[cfg(not(windows))]
 pub fn uninstall() -> Result<(), String> {
-    Err("Context menu integration works on Windows only".to_string())
+    Err(strings::get(strings::ERR_WINDOWS_ONLY, &[]))
 }

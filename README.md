@@ -14,7 +14,9 @@ proj/
 └── README.md
 ```
 
-Menu entries: "Copy folder tree" and "Copy file path" (Russian text on a Russian Windows UI).
+Folders that are skipped by the ignore list or a `.gitignore` are still listed, marked as `node_modules/ [skipped]`, so you can see they exist without their content.
+
+Menu entries: "Copy folder tree" and "Copy file path". The menu and all dialogs follow the Windows display language (English and Russian are built in, English is the fallback).
 
 ## Install
 
@@ -41,7 +43,7 @@ File: `%LOCALAPPDATA%\CopyTree\copytree.toml`, created on first use with every s
 | `max_entries` | `1000000` | Maximum number of lines; the rest is cut with `... (truncated at N entries)`. |
 | `use_gitignore` | `true` | Also respect `.gitignore` files found inside the clicked folder. |
 | `show_sizes` | `true` | Show the file size after each name, e.g. `main.rs (1.2 KB)`. Folders have no size. |
-| `ignore` | see below | Names or masks (like `*.pyc`) skipped at any depth. A custom list replaces the default one. |
+| `ignore` | see below | Names or masks (like `*.pyc`) skipped at any depth. Skipped folders are listed as `name/ [skipped]`, skipped files are hidden. A custom list replaces the default one. |
 
 Default `ignore` list:
 
@@ -54,8 +56,15 @@ Default `ignore` list:
 Notes:
 
 - The clicked folder itself is never ignored (right-click `node_modules` to see its content).
+- Folders excluded by a `.gitignore` are marked `[skipped]` too.
 - Folders come first, then files, both sorted by name. Hidden files are shown. Symlinks are listed, not followed.
 - If you select several files, Explorer runs CopyTree once per file and only the last path stays in the clipboard.
+
+## Translations
+
+Menu entries and dialogs are string resources inside the exe (`assets/strings.rc`); Windows picks the language that matches the display language of the user. The menu text is stored in the registry as an indirect string (`@exe,-ID`), so it also follows a language change without reinstalling. The tree itself (`[skipped]`, `... (truncated ...)`) is always English.
+
+To add a language, copy a block in `assets/strings.rc`, change its `LANGUAGE` line and translate the texts. The IDs must stay the same and match `src/strings.rs`.
 
 ## Build
 
