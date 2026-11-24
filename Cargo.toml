@@ -1,6 +1,6 @@
 [package]
 name = "copytree"
-version = "2.1.0"
+version = "2.1.1"
 edition = "2021"
 authors = ["john3sobieski"]
 description = "Copies a folder tree to the clipboard from the Windows Explorer context menu"
