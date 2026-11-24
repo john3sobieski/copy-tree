@@ -10,6 +10,9 @@ max_entries = 1000000
 # Also respect the .gitignore files found inside the clicked folder.
 use_gitignore = true
 
+# Show the size after each file name, e.g. "main.rs (1.2 KB)".
+show_sizes = true
+
 # File and folder names (or masks like "*.pyc") to skip at any depth.
 ignore = [
     # Version control

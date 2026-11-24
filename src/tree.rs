@@ -10,6 +10,7 @@ struct Entry {
     depth: usize,
     name: String,
     is_dir: bool,
+    size: Option<u64>,
 }
 
 /// Returns the folder tree as text, one entry per line, root first.
@@ -32,6 +33,9 @@ pub fn build_tree(root: &Path, config: &Config) -> Result<String, String> {
         out.push_str(&entry.name);
         if entry.is_dir {
             out.push('/');
+        }
+        if let Some(size) = entry.size {
+            out.push_str(&format!(" ({})", format_size(size)));
         }
         out.push('\n');
         ancestors.push(last);
@@ -76,13 +80,39 @@ fn collect(root: &Path, config: &Config) -> Result<Vec<Entry>, String> {
         .filter_map(Result::ok)
         .filter(|e| e.depth() > 0)
         .take(config.max_entries.saturating_add(1))
-        .map(|e| Entry {
-            depth: e.depth(),
-            name: e.file_name().to_string_lossy().into_owned(),
-            is_dir: e.file_type().is_some_and(|t| t.is_dir()),
+        .map(|e| {
+            let is_dir = e.file_type().is_some_and(|t| t.is_dir());
+            // Sizes cost one extra stat per file, so they are read only when enabled.
+            let size = if config.show_sizes && !is_dir {
+                e.metadata().ok().map(|m| m.len())
+            } else {
+                None
+            };
+            Entry {
+                depth: e.depth(),
+                name: e.file_name().to_string_lossy().into_owned(),
+                is_dir,
+                size,
+            }
         })
         .collect();
     Ok(entries)
+}
+
+/// Size with 1024-based units, e.g. "532 B" or "1.5 KB".
+fn format_size(bytes: u64) -> String {
+    const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
+    if bytes < 1024 {
+        return format!("{bytes} B");
+    }
+    let mut value = bytes as f64 / 1024.0;
+    let mut unit = 0;
+    // Compare the rounded value, so 1023.99 KB becomes "1.0 MB", not "1024.0 KB".
+    while (value * 10.0).round() >= 10240.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    format!("{value:.1} {}", UNITS[unit])
 }
 
 /// Folders first, then case-insensitive by name.

@@ -11,6 +11,7 @@ pub struct Config {
     pub max_depth: usize,
     pub max_entries: usize,
     pub use_gitignore: bool,
+    pub show_sizes: bool,
     pub ignore: Vec<String>,
 }
 
@@ -20,6 +21,7 @@ struct DefaultConfig {
     max_depth: usize,
     max_entries: usize,
     use_gitignore: bool,
+    show_sizes: bool,
     ignore: Vec<String>,
 }
 
@@ -30,6 +32,7 @@ struct UserConfig {
     max_depth: Option<usize>,
     max_entries: Option<usize>,
     use_gitignore: Option<bool>,
+    show_sizes: Option<bool>,
     ignore: Option<Vec<String>>,
 }
 
@@ -40,6 +43,7 @@ pub fn load() -> Result<Config, String> {
         max_depth: defaults.max_depth,
         max_entries: defaults.max_entries,
         use_gitignore: defaults.use_gitignore,
+        show_sizes: defaults.show_sizes,
         ignore: defaults.ignore,
     };
 
@@ -63,6 +67,9 @@ pub fn load() -> Result<Config, String> {
     }
     if let Some(v) = user.use_gitignore {
         config.use_gitignore = v;
+    }
+    if let Some(v) = user.show_sizes {
+        config.show_sizes = v;
     }
     if let Some(v) = user.ignore {
         config.ignore = v;

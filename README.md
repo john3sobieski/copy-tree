@@ -40,6 +40,7 @@ File: `%LOCALAPPDATA%\CopyTree\copytree.toml`, created on first use with every s
 | `max_depth` | `100` | Maximum folder depth (the clicked folder is level 0). |
 | `max_entries` | `1000000` | Maximum number of lines; the rest is cut with `... (truncated at N entries)`. |
 | `use_gitignore` | `true` | Also respect `.gitignore` files found inside the clicked folder. |
+| `show_sizes` | `true` | Show the file size after each name, e.g. `main.rs (1.2 KB)`. Folders have no size. |
 | `ignore` | see below | Names or masks (like `*.pyc`) skipped at any depth. A custom list replaces the default one. |
 
 Default `ignore` list:
@@ -69,6 +70,6 @@ The exe is `target\release\copytree.exe`. GitHub Actions also builds it on every
 ## Credits and license
 
 - Author: john3sobieski
-- Idea: so1arch
+- Idea: [IDEA AUTHOR - PLACEHOLDER]
 
 [PolyForm Noncommercial License 1.0.0](LICENSE): free for noncommercial use.
