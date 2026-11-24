@@ -1,0 +1,31 @@
+# CopyTree settings. Edit freely, changes apply on the next run.
+# Delete this file to restore the defaults. A missing key uses its default value.
+
+# Maximum folder depth (the clicked folder itself is level 0).
+max_depth = 6
+
+# Maximum number of lines in the output; the rest is cut with "... (truncated)".
+max_entries = 2000
+
+# Also respect the .gitignore files found inside the clicked folder.
+use_gitignore = true
+
+# File and folder names (or masks like "*.pyc") to skip at any depth.
+ignore = [
+    # Version control
+    ".git", ".svn", ".hg",
+
+    # Dependencies and build output
+    "node_modules", "target", "dist", "build", "out",
+    "__pycache__", "*.pyc", ".venv", "venv",
+    ".next", ".nuxt", ".gradle",
+
+    # Editors and IDEs
+    ".vs", ".idea", ".vscode",
+
+    # Caches
+    ".cache", ".pytest_cache", ".mypy_cache",
+
+    # System files
+    ".DS_Store", "Thumbs.db", "desktop.ini",
+]

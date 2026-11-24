@@ -1,0 +1,18 @@
+[package]
+name = "copytree"
+version = "0.1.0"
+edition = "2021"
+authors = ["john3sobieski"]
+description = "Copies a folder tree to the clipboard from the Windows Explorer context menu"
+license = "PolyForm-Noncommercial-1.0.0"
+
+[dependencies]
+ignore = "0.4"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+panic = "abort"
