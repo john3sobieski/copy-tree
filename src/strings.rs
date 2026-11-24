@@ -28,6 +28,8 @@ pub const ERR_LOCALAPPDATA: u32 = 141;
 pub const ERR_CREATE_DIR: u32 = 142;
 pub const ERR_COPY_EXE: u32 = 143;
 pub const ERR_REGISTRY: u32 = 144;
+// Used only by the non-Windows stubs.
+#[cfg(not(windows))]
 pub const ERR_WINDOWS_ONLY: u32 = 145;
 
 /// Text by ID; `{0}`, `{1}` in it are replaced with `args`.
