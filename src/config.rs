@@ -1,4 +1,4 @@
-//! Settings from `copytree.toml` next to the exe, created from built-in defaults if missing.
+//! Settings from `copytree.toml` next to the exe; a commented-out template is created if it is missing.
 
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -46,7 +46,7 @@ pub fn load() -> Result<Config, String> {
     let path = config_path()?;
     if !path.exists() {
         // Best effort: the folder may be read-only, the defaults still work.
-        let _ = fs::write(&path, DEFAULT_TOML);
+        let _ = fs::write(&path, template());
         return Ok(config);
     }
 
@@ -68,6 +68,23 @@ pub fn load() -> Result<Config, String> {
         config.ignore = v;
     }
     Ok(config)
+}
+
+/// Template for a new config file: all settings commented out, so built-in defaults keep applying after updates.
+fn template() -> String {
+    let mut out = String::from(
+        "# Every setting below is commented out, so the built-in defaults apply (and follow app updates).\n\
+         # To override one, remove the leading \"# \" from its line(s) and edit the value.\n\n",
+    );
+    for line in DEFAULT_TOML.lines() {
+        let trimmed = line.trim_start();
+        if !trimmed.is_empty() && !trimmed.starts_with('#') {
+            out.push_str("# ");
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
 }
 
 fn config_path() -> Result<PathBuf, String> {

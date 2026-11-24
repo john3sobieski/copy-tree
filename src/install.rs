@@ -78,7 +78,7 @@ pub fn is_installed() -> bool {
     })
 }
 
-/// Copies the exe (and an existing config) to the install folder and writes the entries; safe to repeat.
+/// Copies the exe to the install folder and writes the entries; safe to repeat.
 /// Returns the install folder.
 #[cfg(windows)]
 pub fn install() -> Result<PathBuf, String> {
@@ -94,12 +94,6 @@ pub fn install() -> Result<PathBuf, String> {
             .map_err(|e| format!("Cannot create {}: {e}", dir.display()))?;
         std::fs::copy(&current, &target)
             .map_err(|e| format!("Cannot copy the exe to {}: {e}", target.display()))?;
-        // Keep a config the user already edited next to the old exe, but never overwrite the installed one.
-        let old_config = current.with_file_name(crate::config::FILE_NAME);
-        let new_config = dir.join(crate::config::FILE_NAME);
-        if old_config.is_file() && !new_config.exists() {
-            let _ = std::fs::copy(&old_config, &new_config);
-        }
     }
 
     let exe = target.display().to_string();
