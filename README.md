@@ -1,3 +1,5 @@
+**English** | [Русский](i18n/README.ru.md) | [Deutsch](i18n/README.de.md) | [Español](i18n/README.es.md) | [Português (Brasil)](i18n/README.pt-BR.md) | [简体中文](i18n/README.zh-CN.md) | [日本語](i18n/README.ja.md)
+
 # CopyTree
 
 Windows Explorer right-click tool: copy a folder's tree or a file's full path to the clipboard. Handy for showing a project structure to an AI.
@@ -66,6 +68,8 @@ Menu entries and dialogs are string resources inside the exe (`assets/strings.rc
 
 To add a language, copy a block in `assets/strings.rc`, change its `LANGUAGE` line and translate the texts. The IDs must stay the same and match `src/strings.rs`.
 
+Translations of this README are in the [`i18n`](i18n) folder.
+
 ## Build
 
 Needs Rust 1.79+ on Windows.
@@ -81,4 +85,4 @@ The exe is `target\release\copytree.exe`. GitHub Actions also builds it on every
 - Author: john3sobieski
 - Idea: so1arch
 
-[PolyForm Noncommercial License 1.0.0](LICENSE): free for noncommercial use.
+[PolyForm Noncommercial License 1.0.0](LICENSE.md): free for noncommercial use.
